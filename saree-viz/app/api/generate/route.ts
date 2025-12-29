@@ -5,9 +5,10 @@ import { join } from 'path';
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY || '');
 
-// Configure route to handle larger payloads
+// Configure route segment for larger payloads and longer execution time
 export const runtime = 'nodejs';
-export const maxDuration = 60; // 60 seconds max execution time
+export const maxDuration = 60; // 60 seconds (max for hobby plan)
+export const dynamic = 'force-dynamic';
 
 // Helper function to convert File to base64
 async function fileToBase64(file: File): Promise<string> {
