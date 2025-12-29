@@ -18,6 +18,7 @@ export async function POST(request: NextRequest) {
     const image = formData.get('image') as File;
     const photoIndex = parseInt(formData.get('photoIndex') as string) || 1;
     const sessionSeed = formData.get('sessionSeed') as string || `${Date.now()}`;
+    const customPrompt = formData.get('customPrompt') as string || '';
     
     if (!image) {
       return NextResponse.json(
@@ -28,47 +29,48 @@ export async function POST(request: NextRequest) {
 
     const base64Image = await fileToBase64(image);
 
-    // Define 10 DISTINCTLY DIFFERENT photoshoot poses for variety
+    // Define 10 MINIMAL poses - ONLY arm/hand positions change, everything else IDENTICAL
+    // Model ALWAYS faces front, standing straight - NO body turns, NO angle changes
     const photoshootPoses = [
       {
-        pose: "POSE 1: Full frontal stance - Standing perfectly straight facing camera, feet together, both arms hanging naturally at sides, neutral elegant expression, looking directly at camera. Head straight, shoulders back.",
-        cameraAngle: "Direct front view, 0 degrees"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Standing naturally with both arms relaxed at sides, neutral elegant expression.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 2: Right quarter turn - Body turned 45 degrees to the right, face looking back at camera over right shoulder, right hand gracefully holding pallu near shoulder, left arm extended slightly downward showing saree drape.",
-        cameraAngle: "Three-quarter right side view"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Right hand resting on right hip, left arm at side, slight smile.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 3: Left hip hand pose - Facing front, left hand placed confidently on left hip (elbow out), right hand gently touching pallu end, slight smile, chin slightly lifted, weight on right leg.",
-        cameraAngle: "Straight front with attitude"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Left hand resting on left hip, right arm at side, confident look.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 4: Pallu display spread - Facing camera, both hands holding pallu wide open horizontally at chest level to display full pallu design, arms extended to sides, proud expression.",
-        cameraAngle: "Front view, pallu showcase"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Both hands on hips, elbows out, strong confident stance.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 5: Walking forward motion - Left leg forward in walking stance, right leg back, right hand lifting saree slightly (showing border), left hand holding pallu, dynamic forward movement, confident smile.",
-        cameraAngle: "Front diagonal, capturing motion"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Right hand gently touching pallu on right shoulder, left arm down.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 6: Side profile elegance - Complete side profile (90 degrees), left side facing camera, right hand adjusting hair near ear, left hand holding pallu drape, serene side face expression.",
-        cameraAngle: "Perfect side profile, 90 degrees"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Left hand adjusting pallu on left shoulder, right arm relaxed.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 7: Twisting back look - Back three-quarter view, body 135 degrees away from camera, head turned looking back over left shoulder at camera, both hands adjusting pallu on back, mysterious smile.",
-        cameraAngle: "Back three-quarter view"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Both hands holding pallu edges at chest level displaying the design.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 8: Border showcase squat - Standing but leaning forward slightly, both hands lifting saree bottom edges outward to prominently display border design, looking down at the border detail, focused expression.",
-        cameraAngle: "Front view, slightly elevated camera"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Right hand placed gently on chest center, left arm at side.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 9: Traditional namaste - Perfect frontal, both palms together in namaste gesture at chest center, eyes closed peacefully or soft gaze downward, serene spiritual expression, centered and balanced.",
-        cameraAngle: "Direct centered front"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Both hands in namaste position at chest, peaceful expression.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       },
       {
-        pose: "POSE 10: Twirl motion freeze - Captured mid-gentle-twirl, body slightly turned right, pallu flowing outward from motion, both arms gracefully extended out, joyful laughing expression, hair slightly in motion.",
-        cameraAngle: "Front-right capturing movement"
+        pose: "🚨 FIRST: EXAMINE THE UPLOADED SAREE IMAGE CAREFULLY 🚨\nLook at the saree's exact colors, borders, patterns, and fabric.\nMEMORIZE every detail before generating.\n\n📸 POSE: Arms crossed comfortably at waist, relaxed sophisticated look.\n\n✓ NOW GENERATE: Use the EXACT saree you just examined - same colors, same border width, same patterns, same fabric texture. DO NOT change ANY detail of the saree.",
+        cameraAngle: "Front, eye-level"
       }
     ];
 
@@ -78,200 +80,117 @@ export async function POST(request: NextRequest) {
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-3-pro-image-preview',
       generationConfig: {
-        temperature: 0.02,  // Extremely low for maximum saree consistency
-        topP: 0.7,
-        topK: 10,
+        temperature: 0.0,  // Absolute zero for maximum consistency
+        topP: 0.5,
+        topK: 5,
         candidateCount: 1,
       }
     });
 
-    const prompt = `ANALYZE AND REPLICATE: You are a precision image generator. Study this saree image and create an EXACT replica worn by a model.
+    const prompt = `TASK: Create professional photoshoot image ${photoIndex}/10 showing an Indian model wearing the EXACT saree from the uploaded image.
 
-CRITICAL REQUIREMENTS - ZERO TOLERANCE FOR DEVIATION:
+🎯 PRIMARY OBJECTIVE: EXACT SAREE REPLICATION
+This is a COPY job, not a design job. Your ONLY task is to replicate the saree EXACTLY as shown in the uploaded image.
 
-1. ORIENTATION & FRAMING (MANDATORY):
-   - Model MUST be standing UPRIGHT (vertical orientation)
-   - Camera angle: STRAIGHT-ON, eye-level shot
-   - NO tilted, angled, or rotated shots
-   - NO side poses, lying down, or unusual angles
-   - PORTRAIT orientation ONLY (vertical frame)
-   - Model centered in frame, feet at bottom, head at top
+CRITICAL RULE - SAREE MUST BE IDENTICAL:
+Think of this as scanning and reprinting the same saree in different poses. The saree colors, patterns, borders, fabric, and every detail must be EXACTLY the same as the uploaded image - just worn by a model in different poses.
 
-2. SAREE ANALYSIS - REPLICATE EXACTLY:
-   
-   ⚠️ BORDER EXAMINATION (HIGHEST PRIORITY - MUST BE PIXEL-PERFECT):
-   Step 1: Identify border placement
-   - Is there a border on the bottom edge? LEFT edge? RIGHT edge? All edges?
-   - Document EXACT width of border in centimeters/inches
-   - Note if border is single-line, double-line, or multi-layered
-   
-   Step 2: Extract border colors with EXTREME precision
-   - PRIMARY border color: Extract exact RGB/hex value - NOT approximate
-   - SECONDARY border color(s): If multiple colors, list ALL in exact order
-   - TERTIARY colors: Gold/silver zari, contrast threads, outline colors
-   - Color sequence: Document top-to-bottom or inside-to-outside color order
-   - NO COLOR SUBSTITUTION: Must use EXACT shades, not similar ones
-   
-   Step 3: Border design pattern analysis
-   - Pattern type: Solid line / Floral motifs / Geometric shapes / Paisley / Temple border / Checks / Waves / Traditional motifs
-   - Pattern density: Sparse / Medium / Dense / Continuous
-   - Pattern size: Small (1-2cm) / Medium (3-5cm) / Large (6cm+)
-   - Repeat interval: How often does the pattern repeat?
-   - Embroidery style: Flat / Raised / Zari work / Threadwork / Sequins
-   - Border texture: Smooth / Textured / Embossed / Woven
-   
-   Step 4: Border-to-body contrast
-   - Color contrast level: High / Medium / Low / Monochrome
-   - Is border same material as body or different?
-   - Does border have different sheen level than body?
-   
-   ⚠️ BORDER GENERATION RULES (NON-NEGOTIABLE):
-   ✓ Border width MUST match original (measure in relation to total saree width)
-   ✓ Border colors MUST be IDENTICAL - zero tolerance for shade variations
-   ✓ Border pattern MUST replicate exactly - count motifs if needed
-   ✓ Border placement MUST be accurate - left/right/bottom edges
-   ✓ Border should be CLEARLY VISIBLE in the generated image
-   ✓ Ensure border is sharp, well-defined, not blurred or merged with body
-   ✓ Maintain border color saturation and intensity from original
-   
-   BODY COLOR: 
-   - Extract EXACT hex/RGB color values from the main saree body
-   - Note primary color and any secondary/accent colors
-   - Percentage distribution of each color in the design
-   - Color saturation level: Muted / Vibrant / Pastel / Deep
-   
-   PATTERNS & MOTIFS:
-   - Map every single pattern: floral/geometric/paisley/abstract/traditional
-   - Document pattern size, spacing, and repetition frequency
-   - Note contrast between motifs and background
-   - Identify thread type: zari (gold/silver), colored silk thread, plain cotton
-   - Pattern density: How closely packed are the designs?
-   
-   PALLU (End Piece):
-   - Design complexity: simple/moderate/heavily decorated
-   - Contrast with main body: same/different/highly contrasted
-   - Pattern style on pallu vs body (same or different?)
-   - Pallu border: Does it have additional border? What design?
-   - Length and draping style visible
-   
-   FABRIC:
-   - Material identification: silk/cotton/chiffon/georgette/synthetic blend
-   - Sheen level: matte/semi-matte/glossy/high-shine/metallic
-   - Texture: smooth/textured/ribbed/jacquard/brocade
-   - Opacity: transparent/semi-transparent/opaque
+STEP 1 - ANALYZE THE UPLOADED SAREE IMAGE:
+Before generating, carefully examine the uploaded saree image and note:
 
-3. GENERATION CONSTRAINTS (MUST FOLLOW):
-   
-   🎬 PHOTOSHOOT POSE FOR THIS SHOT (Photo ${photoIndex}/10):
-   ${currentPose.pose}
-   Camera Angle: ${currentPose.cameraAngle}
-   
-   ⚠️ CRITICAL: THIS IS THE **ONLY** VARIATION ALLOWED - POSE AND ANGLE ONLY!
-   Everything else (model face, saree design, colors, borders, patterns) MUST be IDENTICAL to other 9 photos.
-   
-   MODEL IDENTITY (CRITICAL - MUST BE IDENTICAL IN ALL 10 SHOTS):
-   Reference Seed: ${sessionSeed}
-   - EXACT SAME FACE in every generation (use seed for consistency)
-   - Same Indian/South Asian female model, age 27
-   - Same medium-warm skin tone (#C68642 reference)
-   - Same facial features: oval face, almond eyes, defined cheekbones
-   - Same height appearance: 5'6"
-   - Same body type: professional model physique, slender build
-   - Same model identity across ALL 10 photoshoot images
-   
-   STYLING (LOCKED - ZERO VARIATION ACROSS ALL 10 SHOTS):
-   - Hair: EXACT same neat low bun with side part (reference: classic Indian bridal bun)
-   - Jewelry: ONLY small gold stud earrings + 4 thin gold bangles on each wrist
-   - Makeup: Natural professional (nude pink lips, subtle brown eyeshadow, filled brows, natural blush)
-   - Expression: Warm, confident, gentle smile with direct eye contact
-   - NO variation in hair, jewelry, or makeup across the 10 shots
-   
-   🚨 SAREE PRESERVATION (ZERO TOLERANCE FOR CHANGES):
-   
-   DO NOT MODIFY ANYTHING ABOUT THE SAREE:
-   ❌ DO NOT add new patterns or motifs that aren't in the original
-   ❌ DO NOT enhance or embellish the design
-   ❌ DO NOT add extra borders or decorative elements
-   ❌ DO NOT change pattern density or spacing
-   ❌ DO NOT modify embroidery details
-   ❌ DO NOT alter fabric texture or sheen
-   ❌ DO NOT add sequins, beads, or stones if not in original
-   ❌ DO NOT change pallu design or complexity
-   
-   COPY THE SAREE EXACTLY AS-IS:
-   ✓ Use EXACT same body color from original image
-   ✓ Use EXACT same border color, width, and pattern
-   ✓ Use EXACT same pallu design and contrast
-   ✓ Use EXACT same pattern density and placement
-   ✓ Use EXACT same fabric texture visible in original
-   ✓ Copy every detail WITHOUT interpretation or enhancement
-   ✓ If original is simple, keep it simple - NO additions
-   ✓ If original is plain, keep it plain - NO decorations
-   
-   REMEMBER: This is PHOTO ${photoIndex} of a continuous photoshoot.
-   The saree design MUST be pixel-perfect identical across all 10 photos.
-   Only body pose and camera angle change - NOTHING on the saree changes.
-   
-   CAMERA & LIGHTING (CONSISTENT ACROSS ALL 10 SHOTS):
-   - FIXED camera position: eye-level, centered
-   - Lens: 85mm portrait focal length
-   - Distance: Full body visible (head to toe)
-   - Background: Pure white (#FFFFFF) - NO variations across shots
-   - Lighting: Soft, even studio lighting (no harsh shadows)
-   - Color accuracy: TRUE to original saree colors
-   - Focus: Entire saree sharp and clear
-   - SPECIAL: Extra focus on border areas to show border details clearly
-   - Ensure border is well-lit and visible, not in shadow
-   
-   IMAGE QUALITY:
-   - Resolution: 1024x1536 (2:3 aspect ratio, portrait)
-   - File format: PNG for color accuracy
-   - No blur, no noise, no artifacts
-   - Professional catalog-quality output
-   - Border region must be in sharp focus
+COLOR EXTRACTION (Most Important):
+- Main body color: Note the EXACT primary color (use specific color names: burgundy, navy, teal, mustard, etc.)
+- Border color(s): Note ALL border colors in exact sequence
+- If saree is plain/solid color → Generate plain/solid color (NO patterns)
+- If saree is light colored → Generate light colored (NO darkening)
+- If saree has patterns → Note exact pattern type and density
+- If saree has NO patterns → Generate NO patterns
 
-4. PHOTOSHOOT CONTINUITY ENFORCEMENT:
-   
-   MUST BE IDENTICAL ACROSS ALL 10 PHOTOSHOOT IMAGES:
-   ✓ Model's EXACT same face (use seed: ${sessionSeed})
-   ✓ Same model height, build, and body type
-   ✓ Same skin tone and facial features
-   ✓ Same camera setup and distance
-   ✓ Same lighting configuration
-   ✓ Same pure white background
-   ✓ Same hair style (low bun)
-   ✓ Same jewelry (gold studs + bangles)
-   ✓ Same makeup style
-   ✓ Same saree design, colors, patterns, and borders
-   
-   VARIATIONS ALLOWED (Creating photoshoot variety):
-   ✓ Pose/body position (as specified for photo ${photoIndex})
-   ✓ Hand placement and gestures
-   ✓ Body rotation/angle (as specified in camera angle)
-   ✓ Facial expression variations (always warm and professional)
-   
-   CRITICAL: This is photo ${photoIndex} of a 10-image professional photoshoot sequence.
-   The model and saree MUST remain identical. Only the pose changes.
+BORDER ANALYSIS (Critical):
+- Does the saree have a border? YES or NO
+- If YES: Border location (bottom/left/right/all sides)
+- If YES: Border width (thin/medium/thick - measure relative to saree width)
+- If YES: Border color (EXACT color match required)
+- If YES: Border design (plain line/dual tone/patterned/zari work)
+- If NO: Generate without border
 
-5. ABSOLUTE PROHIBITIONS:
-   ❌ NO color deviations - use EXACT RGB values from original saree
-   ❌ NO pattern modifications - copy exactly, don't enhance or simplify
-   ❌ NO added decorations - if not in original, don't add it
-   ❌ NO border changes - exact width, color, and design only
-   ❌ NO fabric texture changes - match original material exactly
-   ❌ NO different models - same face (seed: ${sessionSeed}) every time
-   ❌ NO background variations - pure white only
-   ❌ NO styling changes - same hair, makeup, jewelry
-   ❌ NO saree "improvements" - copy as-is, flaws and all
-   ❌ NO creative interpretation of the saree design
-   ❌ NO adding complexity to simple designs
-   ❌ NO enhancing plain areas with patterns
-   ❌ NO making simple sarees look more elaborate
-   
-   🚨 BORDER-SPECIFIC PROHIBITIONS (CRITICAL):
-   ❌ NO border color changes - must be EXACT match
-   ❌ NO border width alterations - preserve original proportions
-   ❌ NO border pattern simplification - replicate ALL details
+FABRIC & TEXTURE:
+- Fabric type: Cotton/Silk/Chiffon/Georgette/Synthetic
+- Sheen level: Matte/Slight shine/Glossy/High shine
+- Texture: Smooth/Textured/Woven pattern
+
+STEP 2 - REPLICATION RULES (ZERO DEVIATION):
+✓ Copy the EXACT color from uploaded image (no similar shades)
+✓ Copy the EXACT border design (same width, color, pattern)
+✓ Copy the EXACT pattern density (if original is sparse, keep sparse)
+✓ Copy the EXACT fabric appearance (match sheen and texture)
+✓ If saree is simple → Keep it simple
+✓ If saree is plain → Keep it plain  
+✓ If border is thin → Keep it thin
+✓ If there's NO border → Don't add a border
+
+PROHIBITIONS - NEVER DO THESE:
+❌ DO NOT "enhance" or "improve" the saree
+❌ DO NOT add decorations that aren't in the original
+❌ DO NOT change colors to "better" shades
+❌ DO NOT add patterns if original is plain
+❌ DO NOT add borders if original has none
+❌ DO NOT make borders thicker or more decorative
+❌ DO NOT change fabric sheen or texture
+
+STEP 3 - MODEL & POSE SETUP:
+
+POSE ${photoIndex}/10:
+${currentPose.pose}
+
+Camera: ${currentPose.cameraAngle} (eye-level, full body visible, centered)
+
+⚠️ FRAMING CRITICAL: DO NOT CUT THE HEAD - Entire head must be visible in frame from top to bottom
+
+MODEL CONSISTENCY (SAME MODEL ACROSS ALL 10 PHOTOS):
+- Indian/South Asian female model, age 25-28
+- Professional model appearance
+- Medium skin tone
+Drape the saree on the model exactly as you observed from the uploaded image:
+- Use the EXACT same colors (body + border)
+- Use the EXACT same patterns (if any)
+- Use the EXACT same border design (if present)
+- Traditional Indian saree draping: Pleated at waist, pallu over left shoulder
+- Ensure all saree details are clearly visible and well-lit
+- Make the saree look professional and photoshoot-ready
+
+KEY REMINDER:
+- If uploaded saree is PLAIN → Generate PLAIN saree (no patterns)
+- If uploaded saree is PATTERNED → Copy patterns exactly
+- If uploaded saree has THIN border → Keep border thin
+- If uploaded saree has NO border → Don't add a border
+- Match the fabric sheen (matte vs glossy) from uploaded image
+
+BEFORE FINALIZING, VERIFY:
+✓ Saree color matches uploaded image (use color picker mentally)
+✓ Border design matches uploaded image (width, color, pattern)
+✓ Pattern density matches uploaded image (not more, not less)
+✓ Fabric sheen matches uploaded image (matte/glossy)
+✓ Model appears same as other photos (face consistency)
+✓ ENTIRE HEAD is visible - NO cropping of head or hair
+✓ Background is pure white
+✓ Lighting is soft and even
+✓ Full body is visible and centered (head to toe)
+✓ Image is sharp and high quality (4K: 2160x3840)
+✓ Full body is visible and centered
+✓ Image is sharp and high quality (4K: 2160x3840)
+
+PHOTOSHOOT CONTINUITY:
+This is photo ${photoIndex} of 10 total photos. The saree and model must look IDENTICAL across all 10 shots - only the hand/arm pose changes.
+
+Reference seed for model consistency: ${sessionSeed}
+
+OUTPUT QUALITY:
+- Resolution: 2160x3840 pixels (9:16 portrait, 4K quality)
+- Sharp focus on entire saree
+- Professional studio lighting
+- Clean white background
+- Magazine-quality finishplicate ALL details
    ❌ NO missing borders - if original has border, generated image MUST have it
    ❌ NO blurred or unclear borders - must be sharp and defined
    ❌ NO merged borders - border must be distinct from saree body
@@ -289,7 +208,9 @@ CRITICAL REQUIREMENTS - ZERO TOLERANCE FOR DEVIATION:
    ✓ Border contrast with body is preserved
    ✓ Border details are sharp, not blurred
 
-GENERATE: Professional photoshoot image ${photoIndex}/10 - Same model, same saree, different pose. Maintain EXACT model identity (seed: ${sessionSeed}) and EXACT saree design with perfect border preservation. Only the pose varies for photoshoot variety.`;
+GENERATE: Professional photoshoot image ${photoIndex}/10 - Same model, same saree, different pose. Maintain EXACT model identity (seed: ${sessionSeed}) and EXACT saree design with perfect border preservation. Only the pose varies for photoshoot variety.
+
+${customPrompt ? `\n🎯 ADDITIONAL INSTRUCTIONS:\n${customPrompt}\n` : ''}`;
 
     const result = await model.generateContent([
       prompt,

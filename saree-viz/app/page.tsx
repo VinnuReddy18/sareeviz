@@ -10,6 +10,7 @@ interface GeneratedImage {
   timestamp: number;
   localPath?: string;
   downloadUrl?: string;
+  poseIndex?: number;
 }
 
 export default function Home() {
@@ -31,13 +32,16 @@ export default function Home() {
     setSessionSeed(`session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
   };
 
-  const generateSingleImage = async (photoIndex: number): Promise<GeneratedImage | null> => {
+  const generateSingleImage = async (photoIndex: number, customPrompt?: string): Promise<GeneratedImage | null> => {
     if (!uploadedImage) return null;
 
     const formData = new FormData();
     formData.append('image', uploadedImage.file);
     formData.append('photoIndex', photoIndex.toString());
     formData.append('sessionSeed', sessionSeed);
+    if (customPrompt) {
+      formData.append('customPrompt', customPrompt);
+    }
 
     try {
       const response = await fetch('/api/generate', {
@@ -65,6 +69,7 @@ export default function Home() {
           localPath: data.localPath,
           downloadUrl: data.downloadUrl,
           timestamp: Date.now(),
+          poseIndex: photoIndex,
         };
       }
 
@@ -77,6 +82,29 @@ export default function Home() {
     } catch (err) {
       console.error('Generation error:', err);
       throw err;
+    }
+  };
+
+  const handleRegenerate = async (poseIndex: number, customPrompt: string) => {
+    try {
+      const image = await generateSingleImage(poseIndex, customPrompt);
+      
+      if (image) {
+        // Replace the existing image at the pose index
+        setGeneratedImages(prevImages => {
+          const newImages = [...prevImages];
+          const existingIndex = newImages.findIndex(img => img.poseIndex === poseIndex);
+          if (existingIndex !== -1) {
+            newImages[existingIndex] = image;
+          } else {
+            newImages.push(image);
+          }
+          return newImages;
+        });
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(`Failed to regenerate pose ${poseIndex}: ${errorMessage}`);
     }
   };
 
@@ -252,6 +280,8 @@ export default function Home() {
                 isLoading={isGenerating}
                 currentGeneration={currentGeneration}
                 totalGenerations={totalGenerations}
+                onRegenerate={handleRegenerate}
+                uploadedImage={uploadedImage?.preview}
               />
             </div>
           )}

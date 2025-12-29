@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 
 interface GeneratedImage {
   id: string;
@@ -8,6 +9,7 @@ interface GeneratedImage {
   timestamp: number;
   localPath?: string;
   downloadUrl?: string;
+  poseIndex?: number;
 }
 
 interface ResultsGridProps {
@@ -15,14 +17,32 @@ interface ResultsGridProps {
   isLoading?: boolean;
   currentGeneration?: number;
   totalGenerations?: number;
+  onRegenerate?: (poseIndex: number, customPrompt: string) => void;
+  uploadedImage?: string;
 }
 
 export default function ResultsGrid({ 
   images, 
   isLoading, 
   currentGeneration, 
-  totalGenerations 
+  totalGenerations,
+  onRegenerate,
+  uploadedImage
 }: ResultsGridProps) {
+  const [showPromptInput, setShowPromptInput] = useState<number | null>(null);
+  const [customPrompts, setCustomPrompts] = useState<{[key: number]: string}>({});
+  const [regenerating, setRegenerating] = useState<number | null>(null);
+
+  const handleRegenerate = async (poseIndex: number) => {
+    if (!onRegenerate) return;
+    
+    setRegenerating(poseIndex);
+    await onRegenerate(poseIndex, customPrompts[poseIndex] || '');
+    setRegenerating(null);
+    setShowPromptInput(null);
+    setCustomPrompts(prev => ({...prev, [poseIndex]: ''}));
+  };
+
   if (images.length === 0 && !isLoading) {
     return null;
   }
@@ -52,12 +72,25 @@ export default function ResultsGrid({
       </div>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-        {images.map((image, index) => (
+        {images.map((image, index) => {
+          const poseIndex = image.poseIndex ?? index;
+          const isRegeneratingThis = regenerating === poseIndex;
+          
+          return (
           <div 
             key={image.id} 
             className="group relative aspect-[3/4] rounded-2xl overflow-hidden border-2 border-purple-200 hover:border-purple-400 transition-all duration-500 shadow-lg hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-[1.03] animate-slideUp"
             style={{animationDelay: `${index * 50}ms`}}
           >
+            {isRegeneratingThis && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-20 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-3"></div>
+                  <p className="text-white font-bold text-sm">Regenerating...</p>
+                </div>
+              </div>
+            )}
+            
             <Image
               src={image.localPath || image.url}
               alt={`Generated saree model ${index + 1}`}
@@ -71,22 +104,65 @@ export default function ResultsGrid({
             </div>
             
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent text-white px-4 py-4 translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-500">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold">Pose {index + 1}</span>
-                {image.downloadUrl && (
-                  <a
-                    href={image.downloadUrl}
-                    download={`saree-model-${index + 1}.png`}
-                    className="flex items-center gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-300 hover:scale-105 border border-white/30"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    Save
-                  </a>
-                )}
-              </div>
+              {showPromptInput === poseIndex ? (
+                <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <textarea
+                    value={customPrompts[poseIndex] || ''}
+                    onChange={(e) => setCustomPrompts(prev => ({...prev, [poseIndex]: e.target.value}))}
+                    placeholder="Additional instructions (optional)..."
+                    className="w-full px-3 py-2 rounded-lg bg-white/20 backdrop-blur-sm border border-white/30 text-white placeholder-white/60 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-white/50"
+                    rows={2}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleRegenerate(poseIndex)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded-lg text-sm font-bold transition-all duration-300 hover:scale-105"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Generate
+                    </button>
+                    <button
+                      onClick={() => setShowPromptInput(null)}
+                      className="px-3 py-2 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-bold transition-all duration-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold">Pose {index + 1}</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowPromptInput(poseIndex);
+                      }}
+                      className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 hover:scale-105"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                      Retry
+                    </button>
+                    {image.downloadUrl && (
+                      <a
+                        href={image.downloadUrl}
+                        download={`saree-model-${index + 1}.png`}
+                        className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm hover:bg-white/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-300 hover:scale-105 border border-white/30"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        Save
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             
             {image.localPath && (
@@ -104,7 +180,7 @@ export default function ResultsGrid({
               </a>
             )}
           </div>
-        ))}
+        )})}
         
         {isLoading && (
           <div className="relative aspect-[3/4] rounded-2xl border-3 border-dashed border-purple-300 flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50 shadow-lg animate-pulse">
